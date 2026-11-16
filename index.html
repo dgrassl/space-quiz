@@ -233,6 +233,17 @@
     background: linear-gradient(90deg, var(--accent), var(--accent-2));
     -webkit-background-clip: text; background-clip: text; color: transparent; }
   .results p { color: var(--muted); margin: 0; }
+  .review { margin-top: 24px; text-align: left; }
+  .review h3 { margin: 0 0 12px; font-size: 17px; }
+  .review-list { display: grid; gap: 12px; margin: 0; padding: 0; list-style: none; }
+  .review-item {
+    padding: 14px; border: 1px solid var(--border); border-radius: 10px;
+    background: var(--hud-bg);
+  }
+  .review-item p { margin: 0; }
+  .review-question { font-weight: 600; color: var(--text) !important; }
+  .review-answer { margin-top: 6px !important; color: var(--correct) !important; }
+  .review-fact { margin-top: 6px !important; }
 
   .fade-in { animation: fadeIn 0.35s ease; }
 
@@ -317,6 +328,7 @@
 
   const $ = (id) => document.getElementById(id);
   let index = 0, score = 0, answered = false;
+  let missedQuestions = [];
   const pad = (n) => String(n).padStart(2, "0");
 
   const segments = QUESTIONS.map(() => {
@@ -389,6 +401,7 @@
       buttons[i].classList.add("wrong");
       buttons[item.c].classList.add("correct");
       buttons.forEach((b, j) => j !== i && j !== item.c && b.classList.add("dim"));
+      missedQuestions.push({ question: item.q, answer: item.a[item.c], fact: item.fact });
       fb.className = "feedback bad";
       fb.innerHTML = `❌ Not quite — it's “${item.a[item.c]}”. <small></small>`;
     }
@@ -422,8 +435,32 @@
         <div class="big" id="result-score">${score} / ${QUESTIONS.length}</div>
         <p id="result-msg">${msg}</p>
         <div class="progress" style="margin:20px 0 0" aria-hidden="true"><div style="width:${pct * 100}%"></div></div>
+        ${missedQuestions.length ? `<section class="review" aria-labelledby="review-title">
+          <h3 id="review-title">Review missed questions (${missedQuestions.length})</h3>
+          <ol class="review-list"></ol>
+        </section>` : ""}
         <button class="btn" id="restart" aria-describedby="result-title result-score result-msg">Play again</button>
       </div>`;
+    const reviewList = res.querySelector(".review-list");
+    if (reviewList) {
+      missedQuestions.forEach(({ question, answer, fact }) => {
+        const entry = document.createElement("li");
+        entry.className = "review-item";
+        const questionText = document.createElement("p");
+        questionText.className = "review-question";
+        questionText.textContent = question;
+        const answerText = document.createElement("p");
+        answerText.className = "review-answer";
+        const answerLabel = document.createElement("strong");
+        answerLabel.textContent = "Correct answer: ";
+        answerText.append(answerLabel, document.createTextNode(answer));
+        const factText = document.createElement("p");
+        factText.className = "review-fact";
+        factText.textContent = fact;
+        entry.append(questionText, answerText, factText);
+        reviewList.appendChild(entry);
+      });
+    }
     $("restart").addEventListener("click", restart);
     $("restart").focus();
   }
@@ -431,6 +468,7 @@
   function restart() {
     index = 0;
     score = 0;
+    missedQuestions = [];
     $("score").textContent = pad(0);
     segments.forEach((s) => (s.className = "seg"));
     const p = $("progress");
