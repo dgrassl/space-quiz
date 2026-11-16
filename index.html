@@ -327,6 +327,18 @@
   ];
 
   const $ = (id) => document.getElementById(id);
+  const shuffle = (items, previous = []) => {
+    const shuffled = [...items];
+    for (let i = shuffled.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+    }
+    if (shuffled.length > 1 && shuffled.every((item, i) => item === previous[i])) {
+      [shuffled[0], shuffled[1]] = [shuffled[1], shuffled[0]];
+    }
+    return shuffled;
+  };
+  let questions = shuffle(QUESTIONS);
   let index = 0, score = 0, answered = false;
   let missedQuestions = [];
   const pad = (n) => String(n).padStart(2, "0");
@@ -350,7 +362,7 @@
     }
   }
 
-  const segments = QUESTIONS.map(() => {
+  const segments = questions.map(() => {
     const s = document.createElement("div");
     s.className = "seg";
     $("progress").appendChild(s);
@@ -363,9 +375,9 @@
   }
 
   function render(focusFirst) {
-    const item = QUESTIONS[index];
+    const item = questions[index];
     answered = false;
-    $("counter").innerHTML = `${pad(index + 1)}<span class="dim"> / ${QUESTIONS.length}</span>`;
+    $("counter").innerHTML = `${pad(index + 1)}<span class="dim"> / ${questions.length}</span>`;
     segments[index].classList.add("current");
     setStatus("", "Awaiting input");
     $("question").textContent = item.q;
@@ -396,13 +408,13 @@
     seg.classList.add(correct ? "correct" : "wrong");
     const p = $("progress");
     p.setAttribute("aria-valuenow", done);
-    p.setAttribute("aria-valuetext", `${done} of ${QUESTIONS.length} answered`);
+    p.setAttribute("aria-valuetext", `${done} of ${questions.length} answered`);
   }
 
   function choose(i) {
     if (answered) return;
     answered = true;
-    const item = QUESTIONS[index];
+    const item = questions[index];
     const buttons = [...$("options").children];
     buttons.forEach((b) => (b.disabled = true));
     const fb = $("feedback");
@@ -430,7 +442,7 @@
     setStatus(correct ? "ok" : "err", correct ? "Confirmed" : "Anomaly");
     setProgress(index + 1, correct);
     const next = $("next");
-    next.textContent = index === QUESTIONS.length - 1 ? "See results" : "Next question";
+    next.textContent = index === questions.length - 1 ? "See results" : "Next question";
     next.hidden = false;
     next.focus();
   }
@@ -439,7 +451,7 @@
     const previousBest = getBestScore();
     const bestScore = Math.max(score, previousBest);
     if (bestScore > previousBest) saveBestScore(bestScore);
-    const pct = score / QUESTIONS.length;
+    const pct = score / questions.length;
     const [emoji, title, msg] =
       pct === 1   ? ["🤩", "Perfect mission!", "You're ready for astronaut training."] :
       pct >= 0.8  ? ["🚀", "Stellar work!", "You really know your space history."] :
@@ -454,7 +466,7 @@
       <div class="results fade-in">
         <div class="emoji" aria-hidden="true">${emoji}</div>
         <h2 id="result-title">${title}</h2>
-        <div class="big" id="result-score">${score} / ${QUESTIONS.length}</div>
+        <div class="big" id="result-score">${score} / ${questions.length}</div>
         <p id="result-msg">${msg}</p>
         <p id="result-best">Personal best: ${bestScore} / ${QUESTIONS.length}</p>
         <div class="progress" style="margin:20px 0 0" aria-hidden="true"><div style="width:${pct * 100}%"></div></div>
@@ -489,6 +501,7 @@
   }
 
   function restart() {
+    questions = shuffle(QUESTIONS, questions);
     index = 0;
     score = 0;
     missedQuestions = [];
@@ -506,7 +519,7 @@
 
   $("next").addEventListener("click", () => {
     index++;
-    if (index < QUESTIONS.length) render(true);
+    if (index < questions.length) render(true);
     else showResults();
   });
 
