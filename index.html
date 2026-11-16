@@ -330,6 +330,25 @@
   let index = 0, score = 0, answered = false;
   let missedQuestions = [];
   const pad = (n) => String(n).padStart(2, "0");
+  const BEST_SCORE_KEY = "space-exploration-quiz-best-score";
+
+  function getBestScore() {
+    try {
+      const best = Number(window.localStorage.getItem(BEST_SCORE_KEY));
+      return Number.isInteger(best) && best >= 0 && best <= QUESTIONS.length ? best : 0;
+    } catch (error) {
+      console.warn("Unable to read the personal best score from browser storage.", error);
+      return 0;
+    }
+  }
+
+  function saveBestScore(best) {
+    try {
+      window.localStorage.setItem(BEST_SCORE_KEY, String(best));
+    } catch (error) {
+      console.warn("Unable to save the personal best score to browser storage.", error);
+    }
+  }
 
   const segments = QUESTIONS.map(() => {
     const s = document.createElement("div");
@@ -417,6 +436,9 @@
   }
 
   function showResults() {
+    const previousBest = getBestScore();
+    const bestScore = Math.max(score, previousBest);
+    if (bestScore > previousBest) saveBestScore(bestScore);
     const pct = score / QUESTIONS.length;
     const [emoji, title, msg] =
       pct === 1   ? ["🤩", "Perfect mission!", "You're ready for astronaut training."] :
@@ -434,12 +456,13 @@
         <h2 id="result-title">${title}</h2>
         <div class="big" id="result-score">${score} / ${QUESTIONS.length}</div>
         <p id="result-msg">${msg}</p>
+        <p id="result-best">Personal best: ${bestScore} / ${QUESTIONS.length}</p>
         <div class="progress" style="margin:20px 0 0" aria-hidden="true"><div style="width:${pct * 100}%"></div></div>
         ${missedQuestions.length ? `<section class="review" aria-labelledby="review-title">
           <h3 id="review-title">Review missed questions (${missedQuestions.length})</h3>
           <ol class="review-list"></ol>
         </section>` : ""}
-        <button class="btn" id="restart" aria-describedby="result-title result-score result-msg">Play again</button>
+        <button class="btn" id="restart" aria-describedby="result-title result-score result-msg result-best">Play again</button>
       </div>`;
     const reviewList = res.querySelector(".review-list");
     if (reviewList) {
